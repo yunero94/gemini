@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import { DayPlan, TaskPriority, Task, TaskType } from '../types';
 import { TaskCard } from './TaskCard';
 import { ProgressBar } from './ProgressBar';
@@ -15,7 +15,9 @@ interface DailyViewProps {
   onToggleTask: (dayIndex: number, taskId: string) => void;
   onUpdateTask: (dayIndex: number, taskId: string, newDescription: string) => void;
   onUpdatePriority: (dayIndex: number, taskId: string, newPriority: TaskPriority) => void;
+  onDeleteTask: (dayIndex: number, taskId: string) => void;
   onAddTask: (dayIndex: number, task: Omit<Task, 'id' | 'completed'>) => void;
+  onReorderTasks: (dayIndex: number, newTasks: Task[]) => void;
   onSelectDay: (index: number) => void;
   onNextDay: () => void;
   onPrevDay: () => void;
@@ -87,7 +89,9 @@ export const DailyView: React.FC<DailyViewProps> = ({
   onToggleTask,
   onUpdateTask,
   onUpdatePriority,
+  onDeleteTask,
   onAddTask,
+  onReorderTasks,
   onSelectDay,
   onNextDay,
   onPrevDay
@@ -96,6 +100,10 @@ export const DailyView: React.FC<DailyViewProps> = ({
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [newTaskText, setNewTaskText] = useState('');
   const [newTaskType, setNewTaskType] = useState<TaskType>(TaskType.WORKOUT);
+
+  // Drag and Drop Refs
+  const dragItem = useRef<number | null>(null);
+  const dragOverItem = useRef<number | null>(null);
 
   const completedCount = dayPlan.tasks.filter(t => t.completed).length;
   const totalCount = dayPlan.tasks.length;
@@ -118,7 +126,6 @@ export const DailyView: React.FC<DailyViewProps> = ({
     return messages[dayIndex % messages.length];
   }, [dayIndex]);
 
-  // Use the curated Stoic quotes list instead of the generic dailyTip
   const dailyMotivation = useMemo(() => {
     return STOIC_QUOTES[dayIndex % STOIC_QUOTES.length];
   }, [dayIndex]);
@@ -132,6 +139,38 @@ export const DailyView: React.FC<DailyViewProps> = ({
     });
     setNewTaskText('');
     setIsAdding(false);
+  };
+
+  // Drag and Drop Handlers
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    dragItem.current = index;
+    // Set a transparent drag image or similar if desired, but default is fine
+    // e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragEnter = (e: React.DragEvent, index: number) => {
+    if (dragItem.current === null) return;
+    if (dragItem.current === index) return;
+    
+    // Create a copy of tasks to reorder
+    const newTasks = [...dayPlan.tasks];
+    const draggedTask = newTasks[dragItem.current];
+    
+    // Remove from original position
+    newTasks.splice(dragItem.current, 1);
+    // Insert at new position
+    newTasks.splice(index, 0, draggedTask);
+    
+    // Update ref to track the dragged item's new position
+    dragItem.current = index;
+    
+    // Update state via parent
+    onReorderTasks(dayIndex, newTasks);
+  };
+
+  const handleDragEnd = () => {
+    dragItem.current = null;
+    dragOverItem.current = null;
   };
 
   const totalWeeks = Math.ceil(totalDays / daysPerWeek);
@@ -218,7 +257,7 @@ export const DailyView: React.FC<DailyViewProps> = ({
                                         className={`
                                             relative flex flex-col items-start justify-between p-3 h-20 rounded-2xl border text-left transition-all
                                             ${isCurrent 
-                                                ? 'bg-primary border-primary text-black shadow-[0_0_20px_-5px_rgba(190,242,100,0.5)]' 
+                                                ? 'bg-primary border-primary text-black shadow-[0_0_20px_-5px_rgba(255,85,0,0.5)]' 
                                                 : isPast 
                                                     ? 'bg-zinc-900/50 border-zinc-800 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300'
                                                     : 'bg-surface border-zinc-800 text-zinc-300 hover:border-zinc-600 hover:bg-surface-highlight'
@@ -261,11 +300,11 @@ export const DailyView: React.FC<DailyViewProps> = ({
         </div>
       </div>
 
-      {/* Motivation / Celebration (MOVED UP) */}
+      {/* Motivation / Celebration */}
       <div className={`
         p-6 rounded-3xl border transition-all duration-500
         ${allDone 
-            ? 'bg-primary text-black border-primary scale-[1.02] shadow-[0_10px_40px_-10px_rgba(190,242,100,0.5)]' 
+            ? 'bg-primary text-black border-primary scale-[1.02] shadow-[0_10px_40px_-10px_rgba(255,85,0,0.5)]' 
             : 'bg-surface-highlight/30 border-zinc-800 text-zinc-300'
         }
       `}>
@@ -316,14 +355,21 @@ export const DailyView: React.FC<DailyViewProps> = ({
             </div>
         ) : (
             <div className="grid gap-3">
-                {dayPlan.tasks.map(task => (
+                {dayPlan.tasks.map((task, index) => (
                     <TaskCard 
                         key={task.id} 
                         task={task} 
                         onToggle={(taskId) => onToggleTask(dayIndex, taskId)} 
                         onUpdate={(taskId, newVal) => onUpdateTask(dayIndex, taskId, newVal)}
                         onUpdatePriority={(taskId, newPriority) => onUpdatePriority(dayIndex, taskId, newPriority)}
+                        onDelete={(taskId) => onDeleteTask(dayIndex, taskId)}
                         customIcon={categoryIcons?.[task.type]}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, index)}
+                        onDragEnter={(e) => handleDragEnter(e, index)}
+                        onDragEnd={handleDragEnd}
+                        onDragOver={(e) => e.preventDefault()}
+                        className="active:shadow-[0_0_20px_rgba(255,85,0,0.3)] active:border-primary active:z-50"
                     />
                 ))}
             </div>
@@ -358,7 +404,7 @@ export const DailyView: React.FC<DailyViewProps> = ({
                         onClick={() => setNewTaskType(t)}
                         className={`px-3 py-3 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all ${
                             newTaskType === t 
-                            ? 'bg-primary text-black border-primary shadow-[0_0_10px_rgba(190,242,100,0.3)]' 
+                            ? 'bg-primary text-black border-primary shadow-[0_0_10px_rgba(255,85,0,0.3)]' 
                             : 'bg-zinc-800 text-zinc-300 border-zinc-700 hover:bg-zinc-700 hover:text-white'
                         }`}
                     >

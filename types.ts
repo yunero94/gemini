@@ -1,3 +1,4 @@
+
 export enum TaskType {
   WORKOUT = 'WORKOUT',
   NUTRITION = 'NUTRITION',
@@ -24,6 +25,9 @@ export interface DayPlan {
 
 export interface UserProfile {
   name: string;
+  gender: 'Male' | 'Female';
+  birthYear: number;
+  country: string;
   goal: string; // e.g., "Weight Loss", "Muscle Gain"
   level: string; // e.g., "Beginner", "Advanced"
   daysPerWeek: number;

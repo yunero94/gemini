@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { UserProfile, GeminiDayResponse } from "../types";
 
@@ -9,11 +10,16 @@ export const generateFitnessPlan = async (profile: UserProfile): Promise<GeminiD
 
   // Calculate total days for a 4-week plan
   const totalDays = profile.daysPerWeek * 4;
+  const currentYear = new Date().getFullYear();
+  const age = currentYear - profile.birthYear;
 
   const prompt = `
     Create a complete 4-WEEK (Monthly) fitness and wellness routine for a person named ${profile.name}.
     
     User Profile:
+    - Gender: ${profile.gender}
+    - Age: ${age}
+    - Location: ${profile.country}
     - Goal: ${profile.goal}
     - Fitness Level: ${profile.level}
     - Commitment: ${profile.daysPerWeek} days per week.
@@ -22,6 +28,8 @@ export const generateFitnessPlan = async (profile: UserProfile): Promise<GeminiD
     1. Generate exactly ${totalDays} days of content (4 weeks x ${profile.daysPerWeek} days).
     2. Organize the result as a flat list, chronological order: Week 1 Day 1... up to Week 4 Day ${profile.daysPerWeek}.
     3. Implement "Progressive Overload": Week 1 should be introductory, Week 4 should be the most challenging.
+    4. Customize workouts based on gender and age physiology (e.g. recovery needs, intensity scaling).
+    5. If relevant, include locally available nutrition advice for ${profile.country}.
     
     For each day, provide:
     1. A "focus" title (e.g., "Week 1: Foundations - Leg Day", "Week 4: Max Effort - Upper Body").
@@ -91,7 +99,7 @@ export const generateCategoryIcon = async (category: string): Promise<string | n
 
   const prompt = `
     Generate a simple, high-contrast, vector-style UI icon for "${subject}".
-    Style: Minimalist, glowing neon lime green lines on a solid black background.
+    Style: Minimalist, glowing neon orange/red lines on a solid black background.
     The icon should be centered, bold, and clearly recognizable as a user interface icon.
     No text.
   `;

@@ -1,5 +1,5 @@
 {
-  "name": "FitTrack",
+  "name": "GrindFit",
   "description": "A personalized fitness planner that generates weekly workout and nutrition to-do lists using Gemini 2.5 Flash.",
   "requestFramePermissions": []
 }

@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 interface ProgressBarProps {
@@ -21,7 +22,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
       <div 
         className={`
           h-full transition-all duration-1000 cubic-bezier(0.22, 1, 0.36, 1) relative
-          ${isComplete ? 'bg-primary shadow-[0_0_15px_rgba(190,242,100,0.5)]' : colorClass}
+          ${isComplete ? 'bg-primary shadow-[0_0_15px_rgba(255,85,0,0.5)]' : colorClass}
         `}
         style={{ width: `${percentage}%` }}
       >

@@ -7,8 +7,8 @@ import { Overview } from './components/Overview';
 import { ProfileEditor } from './components/ProfileEditor';
 import { LayoutList, CalendarDays, Settings, Loader2, Activity } from 'lucide-react';
 
-const STORAGE_KEY = 'fittrack_program_v1';
-const ICONS_STORAGE_KEY = 'fittrack_icons_v1';
+const STORAGE_KEY = 'grindfit_program_v1';
+const ICONS_STORAGE_KEY = 'grindfit_icons_v1';
 
 // Helper to calculate the scheduled date for a specific day index
 const getScheduledDate = (startDate: number, dayIndex: number, daysPerWeek: number): Date => {
@@ -224,6 +224,17 @@ const App: React.FC = () => {
     });
   }, []);
 
+  const handleDeleteTask = useCallback((dayIndex: number, taskId: string) => {
+    setProgram(prev => {
+      if (!prev) return null;
+      const newSchedule = [...prev.schedule];
+      const day = newSchedule[dayIndex];
+      const updatedTasks = day.tasks.filter(t => t.id !== taskId);
+      newSchedule[dayIndex] = { ...day, tasks: updatedTasks };
+      return { ...prev, schedule: newSchedule };
+    });
+  }, []);
+
   const handleAddTask = useCallback((dayIndex: number, taskData: Omit<Task, 'id' | 'completed'>) => {
     setProgram(prev => {
       if (!prev) return null;
@@ -239,6 +250,15 @@ const App: React.FC = () => {
       const updatedTasks = [...day.tasks, newTask];
       newSchedule[dayIndex] = { ...day, tasks: updatedTasks };
       
+      return { ...prev, schedule: newSchedule };
+    });
+  }, []);
+
+  const handleReorderTasks = useCallback((dayIndex: number, newTasks: Task[]) => {
+    setProgram(prev => {
+      if (!prev) return null;
+      const newSchedule = [...prev.schedule];
+      newSchedule[dayIndex] = { ...newSchedule[dayIndex], tasks: newTasks };
       return { ...prev, schedule: newSchedule };
     });
   }, []);
@@ -289,11 +309,11 @@ const App: React.FC = () => {
       {/* Header */}
       <header className="px-6 py-5 flex justify-between items-center sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b border-zinc-800/50">
         <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-black shadow-[0_0_15px_rgba(190,242,100,0.3)]">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-black shadow-[0_0_15px_rgba(255,85,0,0.3)]">
                 <Activity className="w-5 h-5" strokeWidth={3} />
             </div>
             <div>
-                <h1 className="text-sm font-black tracking-wide uppercase text-white">FitTrack AI</h1>
+                <h1 className="text-sm font-black tracking-wide uppercase text-white">GrindFit</h1>
             </div>
         </div>
         <button 
@@ -318,7 +338,9 @@ const App: React.FC = () => {
             onToggleTask={toggleTask}
             onUpdateTask={updateTaskDescription}
             onUpdatePriority={updateTaskPriority}
+            onDeleteTask={handleDeleteTask}
             onAddTask={handleAddTask}
+            onReorderTasks={handleReorderTasks}
             onSelectDay={setCurrentDayIndex}
             onNextDay={() => setCurrentDayIndex(prev => Math.min(prev + 1, program.schedule.length - 1))}
             onPrevDay={() => setCurrentDayIndex(prev => Math.max(prev - 1, 0))}
@@ -344,7 +366,7 @@ const App: React.FC = () => {
             className={`
                 px-6 py-3 rounded-full flex items-center gap-2 transition-all duration-300
                 ${view === 'daily' 
-                    ? 'bg-primary text-black font-bold shadow-[0_0_20px_-5px_rgba(190,242,100,0.5)]' 
+                    ? 'bg-primary text-black font-bold shadow-[0_0_20px_-5px_rgba(255,85,0,0.5)]' 
                     : 'text-zinc-400 hover:text-white hover:bg-surface-highlight'
                 }
             `}
@@ -358,7 +380,7 @@ const App: React.FC = () => {
             className={`
                 px-6 py-3 rounded-full flex items-center gap-2 transition-all duration-300
                 ${view === 'overview' 
-                    ? 'bg-primary text-black font-bold shadow-[0_0_20px_-5px_rgba(190,242,100,0.5)]' 
+                    ? 'bg-primary text-black font-bold shadow-[0_0_20px_-5px_rgba(255,85,0,0.5)]' 
                     : 'text-zinc-400 hover:text-white hover:bg-surface-highlight'
                 }
             `}

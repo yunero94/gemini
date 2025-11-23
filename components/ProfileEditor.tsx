@@ -1,7 +1,10 @@
+
 import React, { useState } from 'react';
 import { UserProfile } from '../types';
 import { Button } from './Button';
 import { X, Trash2, Save } from 'lucide-react';
+import { CountrySelect } from './CountrySelect';
+import { YearSelect } from './YearSelect';
 
 interface ProfileEditorProps {
   currentProfile: UserProfile;
@@ -54,6 +57,37 @@ export const ProfileEditor: React.FC<ProfileEditorProps> = ({ currentProfile, on
               value={profile.name}
               onChange={handleNameChange}
               className="w-full bg-surface border border-zinc-800 rounded-2xl p-4 text-white focus:border-primary outline-none transition-all"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+             <div className="space-y-3">
+                <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Gender</label>
+                <select
+                  value={profile.gender}
+                  onChange={(e) => handleChange('gender', e.target.value)}
+                  className="w-full bg-surface border border-zinc-800 rounded-2xl p-4 text-white focus:border-primary outline-none transition-all appearance-none"
+                >
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
+             </div>
+             <div className="space-y-3">
+                <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Birth Year</label>
+                <YearSelect
+                  value={profile.birthYear}
+                  onChange={(y) => handleChange('birthYear', y)}
+                  variant="box"
+                />
+             </div>
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Country</label>
+            <CountrySelect 
+              value={profile.country}
+              onChange={(c) => handleChange('country', c)}
+              variant="box"
             />
           </div>
 

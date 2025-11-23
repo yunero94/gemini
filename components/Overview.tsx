@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { DayPlan } from '../types';
 import { ChevronRight, ArrowRight, Activity, BarChart, CalendarRange } from 'lucide-react';
@@ -71,7 +72,7 @@ export const Overview: React.FC<OverviewProps> = ({ schedule, daysPerWeek, onSel
                 className={`
                   w-full text-left p-5 rounded-3xl border transition-all duration-300 group relative overflow-hidden
                   ${isCurrent 
-                    ? 'bg-zinc-900 border-primary/50 shadow-[0_0_30px_-10px_rgba(190,242,100,0.15)]' 
+                    ? 'bg-zinc-900 border-primary/50 shadow-[0_0_30px_-10px_rgba(255,85,0,0.15)]' 
                     : 'bg-surface border-zinc-800 hover:bg-surface-highlight'
                   }
                 `}

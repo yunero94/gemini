@@ -1,16 +1,26 @@
 import React, { useState } from 'react';
 import { Task, TaskType, TaskPriority } from '../types';
-import { Check, Dumbbell, Apple, Brain, Droplets, Pencil, Flag } from 'lucide-react';
+import { Check, Dumbbell, Apple, Brain, Droplets, Pencil, Flag, Trash2, GripVertical } from 'lucide-react';
 
-interface TaskCardProps {
+interface TaskCardProps extends React.HTMLAttributes<HTMLDivElement> {
   task: Task;
   onToggle: (id: string) => void;
   onUpdate: (id: string, newDescription: string) => void;
   onUpdatePriority: (id: string, newPriority: TaskPriority) => void;
+  onDelete: (id: string) => void;
   customIcon?: string;
 }
 
-export const TaskCard: React.FC<TaskCardProps> = ({ task, onToggle, onUpdate, onUpdatePriority, customIcon }) => {
+export const TaskCard: React.FC<TaskCardProps> = ({ 
+  task, 
+  onToggle, 
+  onUpdate, 
+  onUpdatePriority, 
+  onDelete, 
+  customIcon,
+  className = '',
+  ...props
+}) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(task.description);
 
@@ -41,10 +51,13 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onToggle, onUpdate, on
 
   const getPriorityColor = (priority: TaskPriority = 'medium') => {
     switch(priority) {
-        case 'high': return 'text-rose-500 fill-rose-500/20';
-        case 'medium': return 'text-primary fill-primary/20';
+        // High: Electric Orange (Primary) instead of Red
+        case 'high': return 'text-primary fill-primary/20'; 
+        // Medium: Electric Blue (Secondary)
+        case 'medium': return 'text-blue-400 fill-blue-400/20';
+        // Low: Zinc (Gray)
         case 'low': return 'text-zinc-600 fill-transparent';
-        default: return 'text-primary';
+        default: return 'text-blue-400';
     }
   };
 
@@ -54,6 +67,13 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onToggle, onUpdate, on
     const currentIndex = priorities.indexOf(task.priority || 'medium');
     const nextIndex = (currentIndex + 1) % priorities.length;
     onUpdatePriority(task.id, priorities[nextIndex]);
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (window.confirm("Are you sure you want to delete this task?")) {
+        onDelete(task.id);
+    }
   };
 
   const handleSave = () => {
@@ -69,14 +89,21 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onToggle, onUpdate, on
     <div 
       onClick={() => { if (!isEditing) onToggle(task.id); }}
       className={`
-        group relative flex items-start gap-5 p-5 rounded-3xl border cursor-pointer 
+        group relative flex items-start gap-3 sm:gap-4 p-4 sm:p-5 rounded-3xl border cursor-pointer 
         transition-all duration-300
         ${task.completed 
           ? 'bg-zinc-900/40 border-zinc-800/50 opacity-60' 
           : 'bg-surface border-zinc-800 hover:border-primary/30 hover:bg-surface-highlight'
         }
+        ${className}
       `}
+      {...props}
     >
+      {/* Drag Handle */}
+      <div className="mt-1.5 cursor-grab active:cursor-grabbing text-zinc-700 hover:text-zinc-500 transition-colors hidden sm:block">
+          <GripVertical className="w-5 h-5" />
+      </div>
+
       {/* Checkbox UI */}
       <div className={`
         flex-shrink-0 w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all duration-300 mt-1
@@ -92,7 +119,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onToggle, onUpdate, on
         />
       </div>
       
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 pt-1">
         {isEditing ? (
           <textarea 
             value={editValue}
@@ -132,7 +159,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onToggle, onUpdate, on
           </div>
         )}
         
-        <p className="text-xs text-zinc-500 font-medium tracking-wider uppercase mt-0.5 flex items-center gap-2">
+        <p className="text-xs text-zinc-500 font-medium tracking-wider uppercase mt-1 flex items-center gap-2">
           {task.type}
         </p>
       </div>
@@ -152,6 +179,15 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onToggle, onUpdate, on
             title={`Priority: ${task.priority || 'medium'}`}
         >
             <Flag className={`w-4 h-4 transition-colors duration-300 ${getPriorityColor(task.priority)}`} strokeWidth={2.5} />
+        </button>
+
+         {/* Delete Button */}
+         <button 
+            onClick={handleDelete}
+            className="p-2 text-zinc-600 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+            title="Delete task"
+        >
+            <Trash2 className="w-4 h-4" strokeWidth={2} />
         </button>
       </div>
     </div>

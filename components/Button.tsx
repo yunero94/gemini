@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -19,8 +20,9 @@ export const Button: React.FC<ButtonProps> = ({
   const baseStyles = "px-8 py-4 rounded-full font-bold text-sm tracking-wide transition-all duration-300 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100";
   
   const variants = {
-    // Black text on Lime background for maximum contrast and "Volt" look
-    primary: "bg-primary hover:bg-lime-300 text-black shadow-[0_0_20px_-5px_rgba(190,242,100,0.4)] hover:shadow-[0_0_25px_-5px_rgba(190,242,100,0.6)]",
+    // Orange text/bg for maximum contrast and "Grind" look
+    // Updated shadow to rgba(255, 85, 0, ...) for Electric Orange
+    primary: "bg-primary hover:bg-orange-400 text-black shadow-[0_0_20px_-5px_rgba(255,85,0,0.4)] hover:shadow-[0_0_25px_-5px_rgba(255,85,0,0.6)]",
     secondary: "bg-surface-highlight hover:bg-zinc-700 text-white border border-zinc-700",
     outline: "bg-transparent border-2 border-zinc-700 text-zinc-400 hover:text-white hover:border-white",
     danger: "bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20"

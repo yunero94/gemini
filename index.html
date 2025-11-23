@@ -1,18 +1,19 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FitTrack AI</title>
+    <title>GrindFit</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
         theme: {
           extend: {
             colors: {
-              primary: '#bef264', // Lime 300/400 - Acid Green
-              'primary-dark': '#84cc16',
-              secondary: '#a78bfa', // Soft Purple
+              primary: '#ff5500', // Electric Orange / Magma
+              'primary-dark': '#cc4400',
+              secondary: '#3b82f6', // Electric Blue (Contrast)
               background: '#09090b', // Zinc 950 (Deep Black)
               surface: '#18181b', // Zinc 900
               'surface-highlight': '#27272a', // Zinc 800
@@ -61,6 +62,17 @@
       .no-scrollbar {
         -ms-overflow-style: none; 
         scrollbar-width: none;  
+      }
+      /* Custom scrollbar for dropdowns */
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: #18181b; 
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #3f3f46; 
+        border-radius: 4px;
       }
     </style>
   <script type="importmap">
