@@ -1,13 +1,16 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { generateFitnessPlan, generateCategoryIcon } from './services/geminiService';
-import { Program, UserProfile, DayPlan, Task, TaskType, GeminiTaskResponse, TaskPriority } from './types';
+import { Program, UserProfile, DayPlan, Task, TaskType, GeminiTaskResponse, TaskPriority, Badge } from './types';
 import { Onboarding } from './components/Onboarding';
 import { DailyView } from './components/DailyView';
 import { Overview } from './components/Overview';
 import { ProfileEditor } from './components/ProfileEditor';
+import { BadgePopup } from './components/BadgePopup';
+import { BADGE_DEFINITIONS } from './data/badges';
 import { LayoutList, CalendarDays, Settings, Loader2, Activity } from 'lucide-react';
 
-const STORAGE_KEY = 'grindfit_program_v1';
+const STORAGE_KEY = 'grindfit_program_v2'; // Version bump for new structure
 const ICONS_STORAGE_KEY = 'grindfit_icons_v1';
 
 // Helper to calculate the scheduled date for a specific day index
@@ -39,6 +42,7 @@ const App: React.FC = () => {
   const [view, setView] = useState<'daily' | 'overview'>('daily');
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
+  const [newBadge, setNewBadge] = useState<Badge | null>(null);
   
   // State for generated category icons
   const [categoryIcons, setCategoryIcons] = useState<Record<string, string>>({});
@@ -51,6 +55,10 @@ const App: React.FC = () => {
       try {
         const parsedProgram = JSON.parse(saved);
         if (!parsedProgram.createdAt) parsedProgram.createdAt = Date.now();
+        // Migration: Ensure stats object exists if loading old version
+        if (!parsedProgram.stats) {
+            parsedProgram.stats = { xp: 0, level: 1, badges: [] };
+        }
         parsedProgram.schedule.forEach((day: DayPlan) => {
             day.tasks.forEach((task: any) => {
                 if (!task.priority) task.priority = 'medium';
@@ -138,7 +146,12 @@ const App: React.FC = () => {
         id: Date.now().toString(),
         createdAt: Date.now(),
         userProfile: profile,
-        schedule: schedule
+        schedule: schedule,
+        stats: {
+            xp: 0,
+            level: 1,
+            badges: []
+        }
       };
 
       setProgram(newProgram);
@@ -178,10 +191,76 @@ const App: React.FC = () => {
       const taskIndex = day.tasks.findIndex(t => t.id === taskId);
       
       if (taskIndex > -1) {
-        const updatedTask = { ...day.tasks[taskIndex], completed: !day.tasks[taskIndex].completed };
+        const currentTask = day.tasks[taskIndex];
+        const isCompleting = !currentTask.completed;
+        const updatedTask = { ...currentTask, completed: isCompleting };
+        
         const updatedTasks = [...day.tasks];
         updatedTasks[taskIndex] = updatedTask;
         newSchedule[dayIndex] = { ...day, tasks: updatedTasks };
+
+        // --- GAMIFICATION ENGINE ---
+        let newStats = { ...prev.stats };
+        
+        // 1. Calculate XP Change
+        let xpChange = 0;
+        const priorityXp = updatedTask.priority === 'high' ? 100 : updatedTask.priority === 'medium' ? 50 : 25;
+        xpChange = isCompleting ? priorityXp : -priorityXp;
+        
+        newStats.xp = Math.max(0, newStats.xp + xpChange);
+        newStats.level = Math.floor(Math.sqrt(newStats.xp / 100)) + 1;
+
+        // 2. Check for Badge Unlocks (Only when completing)
+        if (isCompleting) {
+            const unlockedBadgeIds = new Set(newStats.badges.map(b => b.id));
+            const badgesToUnlock: Badge[] = [];
+
+            // Helper to check and add badge
+            const checkBadge = (id: string, condition: boolean) => {
+                if (!unlockedBadgeIds.has(id) && condition) {
+                    const def = BADGE_DEFINITIONS.find(d => d.id === id);
+                    if (def) {
+                        badgesToUnlock.push({ ...def, unlockedAt: Date.now() });
+                    }
+                }
+            };
+
+            // Badge: First Step
+            checkBadge('FIRST_STEP', true); // Condition is completing *any* task, which we just did
+
+            // Badge: Day One Done
+            if (dayIndex === 0) {
+                const allDone = updatedTasks.every(t => t.completed);
+                checkBadge('DAY_ONE_DONE', allDone);
+            }
+
+            // Badge: High Performer (Count all high priority completed tasks across all days)
+            const allHighPriorityCompleted = newSchedule.flatMap(d => d.tasks)
+                .filter(t => t.completed && t.priority === 'high').length;
+            checkBadge('HIGH_PERFORMER', allHighPriorityCompleted >= 3);
+
+            // Badge: Week Warrior (7 Days with at least one task? Or 7 Full Days? Let's say 7 Full Days for difficulty)
+            // Simplified: Just check if 7 days are fully complete
+            const daysFullyComplete = newSchedule.filter(d => d.tasks.length > 0 && d.tasks.every(t => t.completed)).length;
+            checkBadge('WEEK_WARRIOR', daysFullyComplete >= 7);
+
+            // Badge: Unstoppable (XP threshold)
+            checkBadge('UNSTOPPABLE', newStats.xp >= 1000);
+
+            // Badge: Iron Will (Level threshold)
+            checkBadge('IRON_WILL', newStats.level >= 5);
+
+            // Add new badges to stats and trigger notification
+            if (badgesToUnlock.length > 0) {
+                newStats.badges = [...newStats.badges, ...badgesToUnlock];
+                setNewBadge(badgesToUnlock[0]); // Show the first one unlocked
+            }
+        } else {
+            // Optional: If unchecking, do we revoke badges? 
+            // Usually games don't revoke achievements. Let's keep badges but reduce XP.
+        }
+
+        return { ...prev, schedule: newSchedule, stats: newStats };
       }
       
       return { ...prev, schedule: newSchedule };
@@ -322,6 +401,10 @@ const App: React.FC = () => {
                     onDeletePlan={handleReset}
                     />
                )}
+
+               {newBadge && (
+                   <BadgePopup badge={newBadge} onClose={() => setNewBadge(null)} />
+               )}
                
                {/* Header */}
                <header className="px-6 py-5 flex justify-between items-center sticky top-0 z-20 bg-black/60 backdrop-blur-xl border-b border-white/5">
@@ -333,12 +416,21 @@ const App: React.FC = () => {
                             <h1 className="text-sm font-black tracking-wide uppercase text-white">GrindFit</h1>
                         </div>
                     </div>
-                    <button 
-                    onClick={() => setShowSettings(true)} 
-                    className="p-2.5 text-zinc-400 hover:text-white hover:bg-white/10 rounded-full transition-all border border-transparent hover:border-white/5"
-                    >
-                        <Settings className="w-5 h-5" />
-                    </button>
+                    
+                    <div className="flex items-center gap-4">
+                        {/* XP Pill in Header */}
+                        <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-zinc-900 rounded-full border border-zinc-800">
+                             <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                             <span className="text-xs font-bold text-zinc-300">Lvl {program.stats.level}</span>
+                        </div>
+
+                        <button 
+                        onClick={() => setShowSettings(true)} 
+                        className="p-2.5 text-zinc-400 hover:text-white hover:bg-white/10 rounded-full transition-all border border-transparent hover:border-white/5"
+                        >
+                            <Settings className="w-5 h-5" />
+                        </button>
+                    </div>
                </header>
 
                {/* Main */}
@@ -365,6 +457,7 @@ const App: React.FC = () => {
                     ) : (
                     <Overview 
                         schedule={program.schedule}
+                        stats={program.stats}
                         daysPerWeek={program.userProfile.daysPerWeek}
                         currentDayIndex={currentDayIndex}
                         onSelectDay={(idx) => {

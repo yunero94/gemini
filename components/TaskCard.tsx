@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { Task, TaskType, TaskPriority } from '../types';
-import { Check, Dumbbell, Apple, Brain, Droplets, Pencil, Flag, Trash2, GripVertical } from 'lucide-react';
+import { Check, Dumbbell, Apple, Brain, Droplets, Pencil, Flag, Trash2, GripVertical, Sparkles } from 'lucide-react';
 
 interface TaskCardProps extends React.HTMLAttributes<HTMLDivElement> {
   task: Task;
@@ -23,6 +24,16 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(task.description);
+
+  // Calculate XP based on priority
+  const getXpValue = () => {
+    switch(task.priority) {
+        case 'high': return 100;
+        case 'medium': return 50;
+        case 'low': return 25;
+        default: return 50;
+    }
+  };
 
   const getCategoryColor = (type: TaskType) => {
     switch (type) {
@@ -159,9 +170,22 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           </div>
         )}
         
-        <p className="text-xs text-zinc-500 font-medium tracking-wider uppercase mt-1 flex items-center gap-2">
-          {task.type}
-        </p>
+        <div className="flex items-center gap-3 mt-1.5">
+            <p className="text-xs text-zinc-500 font-medium tracking-wider uppercase">
+            {task.type}
+            </p>
+            {/* XP Badge */}
+            <div className={`
+                flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border
+                ${task.completed 
+                    ? 'bg-zinc-800 border-zinc-700 text-zinc-500' 
+                    : 'bg-primary/10 border-primary/20 text-primary'
+                }
+            `}>
+                <Sparkles className="w-3 h-3" />
+                <span>{getXpValue()} XP</span>
+            </div>
+        </div>
       </div>
 
       <div className="flex flex-col gap-2 items-center shrink-0">

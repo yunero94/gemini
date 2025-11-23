@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { UserProfile } from '../types';
 import { Button } from './Button';
@@ -81,14 +82,13 @@ export const Onboarding: React.FC<OnboardingProps> = ({ onComplete, isLoading })
         {step === 1 && (
           <div className="animate-slide-up space-y-8">
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-white mb-2">Identify Yourself</h2>
               <p className="text-zinc-500 text-sm">What should we call you?</p>
             </div>
             <input
               type="text"
               value={profile.name}
               onChange={handleNameChange}
-              placeholder="Name"
+              placeholder=""
               className="w-full bg-transparent border-b-2 border-zinc-700 p-4 text-center text-2xl font-bold text-white focus:border-primary outline-none transition-colors placeholder:text-zinc-800"
               autoFocus
               onKeyDown={(e) => e.key === 'Enter' && !isNextDisabled() && handleNext()}

@@ -33,11 +33,26 @@ export interface UserProfile {
   daysPerWeek: number;
 }
 
+export interface Badge {
+  id: string;
+  name: string;
+  description: string;
+  icon: string; // Lucide icon name string
+  unlockedAt?: number;
+}
+
+export interface UserStats {
+  xp: number;
+  level: number;
+  badges: Badge[];
+}
+
 export interface Program {
   id: string;
   createdAt: number;
   userProfile: UserProfile;
   schedule: DayPlan[];
+  stats: UserStats;
 }
 
 // Types for Gemini Response (User input agnostic, strict output)
