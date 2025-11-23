@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FitTrack AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: '#bef264', // Lime 300/400 - Acid Green
+              'primary-dark': '#84cc16',
+              secondary: '#a78bfa', // Soft Purple
+              background: '#09090b', // Zinc 950 (Deep Black)
+              surface: '#18181b', // Zinc 900
+              'surface-highlight': '#27272a', // Zinc 800
+            },
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            },
+            keyframes: {
+              'check-pop': {
+                '0%': { transform: 'scale(0.5)', opacity: '0' },
+                '60%': { transform: 'scale(1.2)' },
+                '100%': { transform: 'scale(1)', opacity: '1' },
+              },
+              shimmer: {
+                '0%': { transform: 'translateX(-100%)' },
+                '100%': { transform: 'translateX(100%)' }
+              },
+              'slide-up': {
+                '0%': { transform: 'translateY(20px)', opacity: '0' },
+                '100%': { transform: 'translateY(0)', opacity: '1' }
+              }
+            },
+            animation: {
+              'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'check-pop': 'check-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+              shimmer: 'shimmer 2.5s infinite linear',
+              'slide-up': 'slide-up 0.5s ease-out forwards',
+            }
+          },
+        },
+      };
+    </script>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+      
+      body {
+        background-color: #09090b;
+        color: #f4f4f5;
+        font-family: 'Inter', sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      /* Hide scrollbar for clean UI but allow functionality */
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .no-scrollbar {
+        -ms-overflow-style: none; 
+        scrollbar-width: none;  
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
