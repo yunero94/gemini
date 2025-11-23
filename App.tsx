@@ -271,125 +271,145 @@ const App: React.FC = () => {
     }
   };
 
-  if (!program) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Onboarding onComplete={handleGenerateProgram} isLoading={loading} />
-      </div>
-    );
-  }
-
   // Calculate the date for the current view
-  const currentViewDate = getScheduledDate(
+  const currentViewDate = program ? getScheduledDate(
     program.createdAt, 
     currentDayIndex, 
     program.userProfile.daysPerWeek
-  );
+  ) : new Date();
 
   return (
-    <div className="min-h-screen bg-background text-zinc-100 flex flex-col max-w-md mx-auto relative border-x border-zinc-900 shadow-2xl">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col max-w-md mx-auto relative border-x border-zinc-900 shadow-2xl overflow-hidden font-sans selection:bg-primary/30">
       
-      {loading && (
-        <div className="absolute inset-0 z-[60] flex flex-col items-center justify-center bg-background/90 backdrop-blur-md p-8 text-center">
-          <Loader2 className="w-16 h-16 text-primary animate-spin mb-6" />
-          <h2 className="text-2xl font-black text-white mb-2 uppercase tracking-tight">Designing Month Plan</h2>
-          <p className="text-zinc-500">Creating 4 weeks of tailored content...</p>
-        </div>
-      )}
-
-      {showSettings && (
-        <ProfileEditor 
-          currentProfile={program.userProfile}
-          onSave={handleUpdateProfile}
-          onCancel={() => setShowSettings(false)}
-          onDeletePlan={handleReset}
-        />
-      )}
-
-      {/* Header */}
-      <header className="px-6 py-5 flex justify-between items-center sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b border-zinc-800/50">
-        <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-black shadow-[0_0_15px_rgba(255,85,0,0.3)]">
-                <Activity className="w-5 h-5" strokeWidth={3} />
-            </div>
-            <div>
-                <h1 className="text-sm font-black tracking-wide uppercase text-white">GrindFit</h1>
-            </div>
-        </div>
-        <button 
-          onClick={() => setShowSettings(true)} 
-          className="p-2.5 text-zinc-400 hover:text-white hover:bg-surface-highlight rounded-full transition-all border border-transparent hover:border-zinc-700"
-        >
-            <Settings className="w-5 h-5" />
-        </button>
-      </header>
-
-      {/* Main Content */}
-      <main className="flex-1 p-4 overflow-y-auto no-scrollbar">
-        {view === 'daily' ? (
-          <DailyView 
-            dayPlan={program.schedule[currentDayIndex]}
-            dayIndex={currentDayIndex}
-            totalDays={program.schedule.length}
-            date={currentViewDate}
-            startDate={program.createdAt}
-            daysPerWeek={program.userProfile.daysPerWeek}
-            categoryIcons={categoryIcons}
-            onToggleTask={toggleTask}
-            onUpdateTask={updateTaskDescription}
-            onUpdatePriority={updateTaskPriority}
-            onDeleteTask={handleDeleteTask}
-            onAddTask={handleAddTask}
-            onReorderTasks={handleReorderTasks}
-            onSelectDay={setCurrentDayIndex}
-            onNextDay={() => setCurrentDayIndex(prev => Math.min(prev + 1, program.schedule.length - 1))}
-            onPrevDay={() => setCurrentDayIndex(prev => Math.max(prev - 1, 0))}
+      {/* --- GLOBAL BACKGROUND EFFECTS --- */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+          {/* Top-Left Warm Glow - Static */}
+          <div className="absolute top-[-20%] left-[-20%] w-[600px] h-[600px] bg-primary rounded-full blur-[150px] opacity-15 mix-blend-screen" />
+          
+          {/* Bottom-Right Cool Glow - Static */}
+          <div className="absolute bottom-[-10%] right-[-20%] w-[500px] h-[500px] bg-blue-600 rounded-full blur-[130px] opacity-10 mix-blend-screen" />
+          
+          {/* Noise Texture for 'Grind' feel */}
+          <div className="absolute inset-0 opacity-[0.07]" 
+               style={{ 
+                 backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+                 filter: 'contrast(120%) brightness(100%)'
+               }} 
           />
-        ) : (
-          <Overview 
-            schedule={program.schedule}
-            daysPerWeek={program.userProfile.daysPerWeek}
-            currentDayIndex={currentDayIndex}
-            onSelectDay={(idx) => {
-              setCurrentDayIndex(idx);
-              setView('daily');
-            }}
-          />
-        )}
-      </main>
+      </div>
 
-      {/* Floating Bottom Navigation */}
-      <nav className="fixed bottom-6 left-0 right-0 flex justify-center z-30 pointer-events-none">
-        <div className="bg-zinc-900/90 backdrop-blur-xl border border-zinc-800 rounded-full p-2 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.7)] flex items-center gap-2 pointer-events-auto">
-            <button 
-            onClick={() => setView('daily')}
-            className={`
-                px-6 py-3 rounded-full flex items-center gap-2 transition-all duration-300
-                ${view === 'daily' 
-                    ? 'bg-primary text-black font-bold shadow-[0_0_20px_-5px_rgba(255,85,0,0.5)]' 
-                    : 'text-zinc-400 hover:text-white hover:bg-surface-highlight'
-                }
-            `}
-            >
-            <LayoutList className="w-5 h-5" />
-            <span className="text-xs uppercase tracking-wider font-bold">Day</span>
-            </button>
-            
-            <button 
-            onClick={() => setView('overview')}
-            className={`
-                px-6 py-3 rounded-full flex items-center gap-2 transition-all duration-300
-                ${view === 'overview' 
-                    ? 'bg-primary text-black font-bold shadow-[0_0_20px_-5px_rgba(255,85,0,0.5)]' 
-                    : 'text-zinc-400 hover:text-white hover:bg-surface-highlight'
-                }
-            `}
-            >
-            <CalendarDays className="w-5 h-5" />
-            <span className="text-xs uppercase tracking-wider font-bold">Month</span>
-            </button>
-        </div>
-      </nav>
+      {/* --- CONTENT --- */}
+      <div className="relative z-10 flex flex-col flex-1 h-full">
+          {!program ? (
+            <div className="flex-1 flex items-center justify-center p-4">
+               <Onboarding onComplete={handleGenerateProgram} isLoading={loading} />
+            </div>
+          ) : (
+            <>
+               {loading && (
+                    <div className="absolute inset-0 z-[60] flex flex-col items-center justify-center bg-black/80 backdrop-blur-md p-8 text-center animate-slide-up">
+                        <Loader2 className="w-16 h-16 text-primary animate-spin mb-6" />
+                        <h2 className="text-2xl font-black text-white mb-2 uppercase tracking-tight">Designing Month Plan</h2>
+                        <p className="text-zinc-500">Creating 4 weeks of tailored content...</p>
+                    </div>
+               )}
+
+               {showSettings && (
+                    <ProfileEditor 
+                    currentProfile={program.userProfile}
+                    onSave={handleUpdateProfile}
+                    onCancel={() => setShowSettings(false)}
+                    onDeletePlan={handleReset}
+                    />
+               )}
+               
+               {/* Header */}
+               <header className="px-6 py-5 flex justify-between items-center sticky top-0 z-20 bg-black/60 backdrop-blur-xl border-b border-white/5">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-black shadow-[0_0_15px_rgba(255,85,0,0.3)]">
+                            <Activity className="w-5 h-5" strokeWidth={3} />
+                        </div>
+                        <div>
+                            <h1 className="text-sm font-black tracking-wide uppercase text-white">GrindFit</h1>
+                        </div>
+                    </div>
+                    <button 
+                    onClick={() => setShowSettings(true)} 
+                    className="p-2.5 text-zinc-400 hover:text-white hover:bg-white/10 rounded-full transition-all border border-transparent hover:border-white/5"
+                    >
+                        <Settings className="w-5 h-5" />
+                    </button>
+               </header>
+
+               {/* Main */}
+               <main className="flex-1 p-4 overflow-y-auto no-scrollbar">
+                    {view === 'daily' ? (
+                    <DailyView 
+                        dayPlan={program.schedule[currentDayIndex]}
+                        dayIndex={currentDayIndex}
+                        totalDays={program.schedule.length}
+                        date={currentViewDate}
+                        startDate={program.createdAt}
+                        daysPerWeek={program.userProfile.daysPerWeek}
+                        categoryIcons={categoryIcons}
+                        onToggleTask={toggleTask}
+                        onUpdateTask={updateTaskDescription}
+                        onUpdatePriority={updateTaskPriority}
+                        onDeleteTask={handleDeleteTask}
+                        onAddTask={handleAddTask}
+                        onReorderTasks={handleReorderTasks}
+                        onSelectDay={setCurrentDayIndex}
+                        onNextDay={() => setCurrentDayIndex(prev => Math.min(prev + 1, program.schedule.length - 1))}
+                        onPrevDay={() => setCurrentDayIndex(prev => Math.max(prev - 1, 0))}
+                    />
+                    ) : (
+                    <Overview 
+                        schedule={program.schedule}
+                        daysPerWeek={program.userProfile.daysPerWeek}
+                        currentDayIndex={currentDayIndex}
+                        onSelectDay={(idx) => {
+                        setCurrentDayIndex(idx);
+                        setView('daily');
+                        }}
+                    />
+                    )}
+               </main>
+
+               {/* Nav */}
+               <nav className="fixed bottom-6 left-0 right-0 flex justify-center z-30 pointer-events-none">
+                    <div className="bg-zinc-900/90 backdrop-blur-xl border border-zinc-800 rounded-full p-2 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.7)] flex items-center gap-2 pointer-events-auto">
+                        <button 
+                        onClick={() => setView('daily')}
+                        className={`
+                            px-6 py-3 rounded-full flex items-center gap-2 transition-all duration-300
+                            ${view === 'daily' 
+                                ? 'bg-primary text-black font-bold shadow-[0_0_20px_-5px_rgba(255,85,0,0.5)]' 
+                                : 'text-zinc-400 hover:text-white hover:bg-white/10'
+                            }
+                        `}
+                        >
+                        <LayoutList className="w-5 h-5" />
+                        <span className="text-xs uppercase tracking-wider font-bold">Day</span>
+                        </button>
+                        
+                        <button 
+                        onClick={() => setView('overview')}
+                        className={`
+                            px-6 py-3 rounded-full flex items-center gap-2 transition-all duration-300
+                            ${view === 'overview' 
+                                ? 'bg-primary text-black font-bold shadow-[0_0_20px_-5px_rgba(255,85,0,0.5)]' 
+                                : 'text-zinc-400 hover:text-white hover:bg-white/10'
+                            }
+                        `}
+                        >
+                        <CalendarDays className="w-5 h-5" />
+                        <span className="text-xs uppercase tracking-wider font-bold">Month</span>
+                        </button>
+                    </div>
+               </nav>
+            </>
+          )}
+      </div>
     </div>
   );
 };
