@@ -7,9 +7,10 @@ interface TaskCardProps {
   onToggle: (id: string) => void;
   onUpdate: (id: string, newDescription: string) => void;
   onUpdatePriority: (id: string, newPriority: TaskPriority) => void;
+  customIcon?: string;
 }
 
-export const TaskCard: React.FC<TaskCardProps> = ({ task, onToggle, onUpdate, onUpdatePriority }) => {
+export const TaskCard: React.FC<TaskCardProps> = ({ task, onToggle, onUpdate, onUpdatePriority, customIcon }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(task.description);
 
@@ -24,6 +25,10 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onToggle, onUpdate, on
   };
 
   const getIcon = (type: TaskType) => {
+    if (customIcon) {
+        return <img src={customIcon} alt={type} className="w-full h-full object-cover rounded-xl" />;
+    }
+
     const cls = `w-5 h-5 ${getCategoryColor(type)}`;
     switch (type) {
       case TaskType.WORKOUT: return <Dumbbell className={cls} />;
@@ -135,7 +140,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onToggle, onUpdate, on
       <div className="flex flex-col gap-2 items-center shrink-0">
         {/* Category Indicator */}
         <div className={`
-            w-10 h-10 rounded-2xl flex items-center justify-center bg-black/40 border border-zinc-800
+            w-10 h-10 rounded-2xl flex items-center justify-center bg-black/40 border border-zinc-800 overflow-hidden p-0.5
         `}>
             {getIcon(task.type)}
         </div>

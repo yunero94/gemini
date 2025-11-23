@@ -2,34 +2,98 @@ import React, { useMemo, useState } from 'react';
 import { DayPlan, TaskPriority, Task, TaskType } from '../types';
 import { TaskCard } from './TaskCard';
 import { ProgressBar } from './ProgressBar';
-import { Trophy, Zap, CalendarCheck, ChevronLeft, ChevronRight, Plus, X, Coffee, Sparkles } from 'lucide-react';
+import { Trophy, Zap, CalendarCheck, ChevronLeft, ChevronRight, Plus, X, Coffee, Sparkles, ChevronDown, Calendar, Dumbbell, Flame } from 'lucide-react';
 
 interface DailyViewProps {
   dayPlan: DayPlan;
   dayIndex: number;
   totalDays: number;
   date: Date;
+  startDate: number;
+  daysPerWeek: number;
+  categoryIcons?: Record<string, string>;
   onToggleTask: (dayIndex: number, taskId: string) => void;
   onUpdateTask: (dayIndex: number, taskId: string, newDescription: string) => void;
   onUpdatePriority: (dayIndex: number, taskId: string, newPriority: TaskPriority) => void;
   onAddTask: (dayIndex: number, task: Omit<Task, 'id' | 'completed'>) => void;
+  onSelectDay: (index: number) => void;
   onNextDay: () => void;
   onPrevDay: () => void;
 }
+
+// Helper to calculate dates locally for the calendar picker
+const getScheduledDate = (startDate: number, dayIndex: number, daysPerWeek: number): Date => {
+  const start = new Date(startDate);
+  const weekIndex = Math.floor(dayIndex / daysPerWeek);
+  const dayInWeekIndex = dayIndex % daysPerWeek;
+  
+  // Weekly offset (7 days per full week block)
+  const daysOffset = weekIndex * 7;
+  
+  // Distribute days roughly evenly across the week based on frequency
+  let extraDays = 0;
+  if (daysPerWeek === 1) extraDays = 0; // Mon
+  else if (daysPerWeek === 2) extraDays = dayInWeekIndex * 3; // Mon, Thu
+  else if (daysPerWeek === 3) extraDays = dayInWeekIndex * 2; // Mon, Wed, Fri
+  else if (daysPerWeek === 4) extraDays = dayInWeekIndex + (dayInWeekIndex >= 2 ? 1 : 0); // Mon, Tue, Thu, Fri
+  else if (daysPerWeek >= 5) extraDays = dayInWeekIndex; // Consecutive days
+  
+  const result = new Date(start);
+  result.setDate(result.getDate() + daysOffset + extraDays);
+  return result;
+};
+
+const STOIC_QUOTES = [
+  "No man has the right to be an amateur in the matter of physical training. It is a shame for a man to grow old without seeing the beauty and strength of which his body is capable. — Socrates",
+  "Difficulties strengthen the mind, as labor does the body. — Seneca",
+  "We are what we repeatedly do. Excellence, then, is not an act, but a habit. — Aristotle",
+  "It is a rough road that leads to the heights of greatness. — Seneca",
+  "The pain you feel today will be the strength you feel tomorrow.",
+  "You have power over your mind — not outside events. Realize this, and you will find strength. — Marcus Aurelius",
+  "Discipline is doing what needs to be done, even if you don't want to do it.",
+  "The resistance that you fight physically in the gym and the resistance that you fight in life can only build a strong character. — Arnold Schwarzenegger",
+  "Strength does not come from winning. Your struggles develop your strengths.",
+  "If it is endurable, then endure it. Stop complaining. — Marcus Aurelius",
+  "To be calm is the highest achievement of the self.",
+  "The body should be treated rigorously, that it may not be disobedient to the mind. — Seneca",
+  "Nothing great is created suddenly, any more than a bunch of grapes or a fig. — Epictetus",
+  "Don't explain your philosophy. Embodiment is the only proof.",
+  "Focus on what you can control. Your effort, your diet, your intensity.",
+  "Sweat is the weeping of the weakness leaving the body.",
+  "A gem cannot be polished without friction, nor a man perfected without trials. — Seneca",
+  "First say to yourself what you would be; and then do what you have to do. — Epictetus",
+  "The only easy day was yesterday.",
+  "Your body is the slave of your mind. Master your mind.",
+  "Endurance is one of the most difficult disciplines, but it is to the one who endures that the final victory comes. — Buddha",
+  "Do not pray for an easy life, pray for the strength to endure a difficult one. — Bruce Lee",
+  "Man conquers the world by conquering himself. — Zeno",
+  "It is not death that a man should fear, but he should fear never beginning to live. — Marcus Aurelius",
+  "Be stricter with yourself than you are with others.",
+  "Progress is not achieved by luck or accident, but by working on yourself daily. — Epictetus",
+  "Conquer yourself and you conquer the world.",
+  "Pain is temporary. Quitting lasts forever.",
+  "The mind is the limit. As long as the mind can envision the fact that you can do something, you can do it. — Arnold Schwarzenegger",
+  "Mastery requires patience. Do the work."
+];
 
 export const DailyView: React.FC<DailyViewProps> = ({ 
   dayPlan, 
   dayIndex, 
   totalDays,
   date,
+  startDate,
+  daysPerWeek,
+  categoryIcons,
   onToggleTask,
   onUpdateTask,
   onUpdatePriority,
   onAddTask,
+  onSelectDay,
   onNextDay,
   onPrevDay
 }) => {
   const [isAdding, setIsAdding] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [newTaskText, setNewTaskText] = useState('');
   const [newTaskType, setNewTaskType] = useState<TaskType>(TaskType.WORKOUT);
 
@@ -51,8 +115,12 @@ export const DailyView: React.FC<DailyViewProps> = ({
         "Level up! You completed everything on the list.",
         "Fantastic effort. Enjoy your recovery."
     ];
-    // Use dayIndex to pick a consistent message for the specific day
     return messages[dayIndex % messages.length];
+  }, [dayIndex]);
+
+  // Use the curated Stoic quotes list instead of the generic dailyTip
+  const dailyMotivation = useMemo(() => {
+    return STOIC_QUOTES[dayIndex % STOIC_QUOTES.length];
   }, [dayIndex]);
 
   const handleSaveTask = () => {
@@ -66,10 +134,14 @@ export const DailyView: React.FC<DailyViewProps> = ({
     setIsAdding(false);
   };
 
+  const totalWeeks = Math.ceil(totalDays / daysPerWeek);
+  const weeksArray = Array.from({ length: totalWeeks }, (_, i) => i);
+
   return (
-    <div className="pb-32 space-y-8 animate-slide-up">
-      {/* Date Navigation */}
-      <div className="flex items-center justify-between px-2">
+    <div className="pb-32 space-y-8 animate-slide-up relative">
+      
+      {/* Date Navigation / Picker Header */}
+      <div className="flex items-center justify-between px-2 relative z-20">
         <button 
             onClick={onPrevDay}
             disabled={dayIndex === 0}
@@ -78,15 +150,20 @@ export const DailyView: React.FC<DailyViewProps> = ({
             <ChevronLeft className="w-6 h-6" />
         </button>
         
-        <div className="flex flex-col items-center">
+        <button 
+            onClick={() => setShowDatePicker(true)}
+            className="flex flex-col items-center group p-2 rounded-2xl hover:bg-zinc-900 transition-colors"
+        >
             <span className="text-[10px] font-bold tracking-[0.2em] text-primary uppercase mb-1">
                 Day {dayIndex + 1} / {totalDays}
             </span>
-            <span className="text-sm font-medium text-zinc-400">
-                {/* Use dateStyle: 'full' to fully respect user's system date format settings */}
-                {date.toLocaleDateString(undefined, { dateStyle: 'full' })}
-            </span>
-        </div>
+            <div className="flex items-center gap-1.5 text-zinc-300 group-hover:text-white transition-colors">
+                <span className="text-sm font-bold">
+                    {date.toLocaleDateString(undefined, { dateStyle: 'full' })}
+                </span>
+                <ChevronDown className="w-4 h-4 text-zinc-500 group-hover:text-primary transition-colors" />
+            </div>
+        </button>
 
         <button 
             onClick={onNextDay}
@@ -97,21 +174,112 @@ export const DailyView: React.FC<DailyViewProps> = ({
         </button>
       </div>
 
-      {/* Hero Header */}
-      <div className="relative px-2">
-        <div className="absolute right-4 top-0 opacity-10 pointer-events-none">
-             <h1 className="text-[8rem] font-black leading-none tracking-tighter text-white">
-                {dayIndex + 1}
-            </h1>
+      {/* Date Picker Overlay */}
+      {showDatePicker && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-md animate-slide-up overflow-hidden">
+            <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
+                <div className="flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-primary" />
+                    <span className="font-bold text-white tracking-wide uppercase">Select Day</span>
+                </div>
+                <button 
+                    onClick={() => setShowDatePicker(false)}
+                    className="p-2 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white"
+                >
+                    <X className="w-6 h-6" />
+                </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                {weeksArray.map(weekIdx => (
+                    <div key={weekIdx} className="space-y-3">
+                        <div className="flex items-center gap-3">
+                            <span className="text-xs font-black text-zinc-500 uppercase tracking-widest px-2">
+                                Week {weekIdx + 1}
+                            </span>
+                            <div className="h-px bg-zinc-900 flex-1" />
+                        </div>
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                            {Array.from({ length: daysPerWeek }).map((_, i) => {
+                                const dIdx = weekIdx * daysPerWeek + i;
+                                if (dIdx >= totalDays) return null;
+                                
+                                const dDate = getScheduledDate(startDate, dIdx, daysPerWeek);
+                                const isCurrent = dIdx === dayIndex;
+                                const isPast = dIdx < dayIndex;
+                                
+                                return (
+                                    <button
+                                        key={dIdx}
+                                        onClick={() => {
+                                            onSelectDay(dIdx);
+                                            setShowDatePicker(false);
+                                        }}
+                                        className={`
+                                            relative flex flex-col items-start justify-between p-3 h-20 rounded-2xl border text-left transition-all
+                                            ${isCurrent 
+                                                ? 'bg-primary border-primary text-black shadow-[0_0_20px_-5px_rgba(190,242,100,0.5)]' 
+                                                : isPast 
+                                                    ? 'bg-zinc-900/50 border-zinc-800 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300'
+                                                    : 'bg-surface border-zinc-800 text-zinc-300 hover:border-zinc-600 hover:bg-surface-highlight'
+                                            }
+                                        `}
+                                    >
+                                        <span className="text-[10px] font-black uppercase tracking-wider opacity-60">Day {dIdx + 1}</span>
+                                        <span className={`text-xs font-bold ${isCurrent ? 'text-black' : 'text-white'}`}>
+                                            {dDate.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' })}
+                                        </span>
+                                        
+                                        {isCurrent && (
+                                            <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-black animate-pulse" />
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+      )}
+
+      {/* Hero Header Banner */}
+      <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-zinc-900 via-zinc-900/80 to-transparent border border-white/5 p-6 shadow-xl">
+        {/* Shaded Athlete/Logo Watermark */}
+        <div className="absolute -right-8 -bottom-12 opacity-[0.03] pointer-events-none rotate-[-15deg]">
+             <Dumbbell className="w-64 h-64 text-white" strokeWidth={1.5} />
         </div>
         
         <div className="relative z-10">
-            <h1 className="text-5xl font-black text-white tracking-tight mb-2 uppercase italic">
+            <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tight mb-2 uppercase italic leading-[0.9]">
                 {dayPlan.dayName}
             </h1>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-highlight border border-zinc-700 text-zinc-300 text-xs font-bold tracking-wide uppercase">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-zinc-300 text-xs font-bold tracking-wide uppercase backdrop-blur-md">
                 <Zap className="w-3 h-3 text-primary" fill="currentColor" />
                 {dayPlan.focus}
+            </div>
+        </div>
+      </div>
+
+      {/* Motivation / Celebration (MOVED UP) */}
+      <div className={`
+        p-6 rounded-3xl border transition-all duration-500
+        ${allDone 
+            ? 'bg-primary text-black border-primary scale-[1.02] shadow-[0_10px_40px_-10px_rgba(190,242,100,0.5)]' 
+            : 'bg-surface-highlight/30 border-zinc-800 text-zinc-300'
+        }
+      `}>
+        <div className="flex gap-4 items-start">
+            <div className={`p-3 rounded-xl ${allDone ? 'bg-black/10 text-black' : 'bg-black/20 text-primary'}`}>
+                {allDone ? <CalendarCheck className="w-6 h-6" /> : <Flame className="w-6 h-6" />}
+            </div>
+            <div>
+                <h3 className={`font-bold text-lg mb-1 ${allDone ? 'text-black' : 'text-white'}`}>
+                    {allDone ? "Day Complete!" : "Daily Motivation"}
+                </h3>
+                <p className={`text-sm leading-relaxed ${allDone ? 'text-black/80 font-medium' : 'text-zinc-400 italic'}`}>
+                    {allDone ? celebrationMessage : `"${dailyMotivation}"`}
+                </p>
             </div>
         </div>
       </div>
@@ -129,29 +297,6 @@ export const DailyView: React.FC<DailyViewProps> = ({
          
          {/* Background decoration */}
          <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/5 blur-3xl rounded-full" />
-      </div>
-
-      {/* Tip / Celebration */}
-      <div className={`
-        p-6 rounded-3xl border transition-all duration-500
-        ${allDone 
-            ? 'bg-primary text-black border-primary scale-[1.02] shadow-[0_10px_40px_-10px_rgba(190,242,100,0.5)]' 
-            : 'bg-surface-highlight/30 border-zinc-800 text-zinc-300'
-        }
-      `}>
-        <div className="flex gap-4 items-start">
-            <div className={`p-3 rounded-xl ${allDone ? 'bg-black/10 text-black' : 'bg-black/20 text-primary'}`}>
-                {allDone ? <CalendarCheck className="w-6 h-6" /> : <Zap className="w-6 h-6" />}
-            </div>
-            <div>
-                <h3 className={`font-bold text-lg mb-1 ${allDone ? 'text-black' : 'text-white'}`}>
-                    {allDone ? "Day Complete!" : "Daily Insight"}
-                </h3>
-                <p className={`text-sm leading-relaxed ${allDone ? 'text-black/80 font-medium' : 'text-zinc-400'}`}>
-                    {allDone ? celebrationMessage : dayPlan.dailyTip}
-                </p>
-            </div>
-        </div>
       </div>
 
       {/* Tasks List */}
@@ -178,6 +323,7 @@ export const DailyView: React.FC<DailyViewProps> = ({
                         onToggle={(taskId) => onToggleTask(dayIndex, taskId)} 
                         onUpdate={(taskId, newVal) => onUpdateTask(dayIndex, taskId, newVal)}
                         onUpdatePriority={(taskId, newPriority) => onUpdatePriority(dayIndex, taskId, newPriority)}
+                        customIcon={categoryIcons?.[task.type]}
                     />
                 ))}
             </div>

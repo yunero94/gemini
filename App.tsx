@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { generateFitnessPlan } from './services/geminiService';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { generateFitnessPlan, generateCategoryIcon } from './services/geminiService';
 import { Program, UserProfile, DayPlan, Task, TaskType, GeminiTaskResponse, TaskPriority } from './types';
 import { Onboarding } from './components/Onboarding';
 import { DailyView } from './components/DailyView';
@@ -8,6 +8,7 @@ import { ProfileEditor } from './components/ProfileEditor';
 import { LayoutList, CalendarDays, Settings, Loader2, Activity } from 'lucide-react';
 
 const STORAGE_KEY = 'fittrack_program_v1';
+const ICONS_STORAGE_KEY = 'fittrack_icons_v1';
 
 // Helper to calculate the scheduled date for a specific day index
 const getScheduledDate = (startDate: number, dayIndex: number, daysPerWeek: number): Date => {
@@ -38,15 +39,18 @@ const App: React.FC = () => {
   const [view, setView] = useState<'daily' | 'overview'>('daily');
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
+  
+  // State for generated category icons
+  const [categoryIcons, setCategoryIcons] = useState<Record<string, string>>({});
+  const generatingIconsRef = useRef(false);
 
   useEffect(() => {
+    // Load Program
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
         const parsedProgram = JSON.parse(saved);
-        // Migration for existing data
-        if (!parsedProgram.createdAt) parsedProgram.createdAt = Date.now(); // Backfill creation date
-        
+        if (!parsedProgram.createdAt) parsedProgram.createdAt = Date.now();
         parsedProgram.schedule.forEach((day: DayPlan) => {
             day.tasks.forEach((task: any) => {
                 if (!task.priority) task.priority = 'medium';
@@ -57,7 +61,43 @@ const App: React.FC = () => {
         console.error("Failed to parse saved program", e);
       }
     }
+
+    // Load Icons
+    const savedIcons = localStorage.getItem(ICONS_STORAGE_KEY);
+    if (savedIcons) {
+      setCategoryIcons(JSON.parse(savedIcons));
+    } else {
+      // Trigger generation if not present
+      generateIcons();
+    }
   }, []);
+
+  const generateIcons = async () => {
+    if (generatingIconsRef.current) return;
+    generatingIconsRef.current = true;
+    
+    const types = [TaskType.WORKOUT, TaskType.NUTRITION, TaskType.MINDSET, TaskType.HYDRATION];
+    const newIcons: Record<string, string> = {};
+    
+    // Generate sequentially to avoid rate limits or overwhelming the client
+    for (const t of types) {
+        try {
+            const icon = await generateCategoryIcon(t);
+            if (icon) {
+                newIcons[t] = icon;
+                // Update state progressively
+                setCategoryIcons(prev => {
+                    const next = { ...prev, [t]: icon };
+                    localStorage.setItem(ICONS_STORAGE_KEY, JSON.stringify(next));
+                    return next;
+                });
+            }
+        } catch (e) {
+            console.error(`Error generating icon for ${t}`, e);
+        }
+    }
+    generatingIconsRef.current = false;
+  };
 
   useEffect(() => {
     if (program) {
@@ -272,10 +312,14 @@ const App: React.FC = () => {
             dayIndex={currentDayIndex}
             totalDays={program.schedule.length}
             date={currentViewDate}
+            startDate={program.createdAt}
+            daysPerWeek={program.userProfile.daysPerWeek}
+            categoryIcons={categoryIcons}
             onToggleTask={toggleTask}
             onUpdateTask={updateTaskDescription}
             onUpdatePriority={updateTaskPriority}
             onAddTask={handleAddTask}
+            onSelectDay={setCurrentDayIndex}
             onNextDay={() => setCurrentDayIndex(prev => Math.min(prev + 1, program.schedule.length - 1))}
             onPrevDay={() => setCurrentDayIndex(prev => Math.max(prev - 1, 0))}
           />
